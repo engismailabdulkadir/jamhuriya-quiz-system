@@ -5,6 +5,7 @@ services:
     rootDir: backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
+    plan: free
     healthCheckPath: /
     envVars:
       - key: APP_NAME
@@ -60,5 +61,6 @@ services:
 
 databases:
   - name: online-quiz-db
+    plan: free
     databaseName: online_quiz
     user: online_quiz_user
