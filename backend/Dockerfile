@@ -11,8 +11,8 @@ FROM php:8.3-cli-alpine
 
 WORKDIR /var/www/html
 
-RUN apk add --no-cache bash icu-libs libzip libpng libjpeg-turbo freetype \
-    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev libzip-dev \
+RUN apk add --no-cache bash icu-libs libzip libpng libjpeg-turbo freetype postgresql-libs \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev libzip-dev postgresql-dev \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring bcmath \
     && apk del .build-deps
 

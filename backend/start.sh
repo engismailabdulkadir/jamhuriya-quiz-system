@@ -5,6 +5,11 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
+# Ensure Laravel key exists in cloud runtime.
+if [ -z "${APP_KEY}" ]; then
+  php artisan key:generate --force
+fi
+
 # Keep runtime config fresh for cloud env vars.
 php artisan optimize:clear
 
