@@ -9,3 +9,5 @@ frontend/.env
 frontend/vite-dev.err.log
 frontend/vite-dev.out.log
 backend/database/read_all_data.sql
+
+.vercel
