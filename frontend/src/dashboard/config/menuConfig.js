@@ -57,16 +57,6 @@ export const adminMenuGroups = [
     section: 'Academic Management',
     items: [
       {
-        label: 'Courses',
-        icon: 'BookOpen',
-        children: [
-          { label: 'Add Course', path: '/admin/courses/add', view: 'modalForm' },
-          { label: 'Manage Courses', path: '/admin/courses', view: 'table' },
-          { label: 'Assign Teacher', path: '/admin/courses/assign-teacher', view: 'fullPageForm' },
-          { label: 'Course List', path: '/admin/courses/list', view: 'table' }
-        ]
-      },
-      {
         label: 'Rooms',
         icon: 'Building2',
         children: [
@@ -80,7 +70,7 @@ export const adminMenuGroups = [
         label: 'Quizzes',
         icon: 'ClipboardCheck',
         children: [
-          { label: 'Add Quiz', path: '/admin/quizzes/add', view: 'fullPageForm' },
+          { label: 'Quiz', path: '/admin/quizzes/add', view: 'fullPageForm' },
           { label: 'Manage Quiz', path: '/admin/quizzes', view: 'table' },
           { label: 'Questions', path: '/admin/quizzes/questions', view: 'fullPageForm' },
           { label: 'Settings', path: '/admin/quizzes/settings', view: 'fullPageForm' },
@@ -146,14 +136,6 @@ export const teacherMenuGroups = [
     section: 'Academic Management',
     items: [
       {
-        label: 'Courses',
-        icon: 'BookOpen',
-        children: [
-          { label: 'My Courses', path: '/teacher/courses', view: 'table' },
-          { label: 'Course List', path: '/teacher/courses/list', view: 'table' }
-        ]
-      },
-      {
         label: 'Rooms',
         icon: 'Building2',
         children: [
@@ -166,7 +148,7 @@ export const teacherMenuGroups = [
         label: 'Quizzes',
         icon: 'ClipboardCheck',
         children: [
-          { label: 'Add Quiz', path: '/teacher/quizzes/add', view: 'fullPageForm' },
+          { label: 'Quiz', path: '/teacher/quizzes/add', view: 'fullPageForm' },
           { label: 'Manage Quiz', path: '/teacher/quizzes', view: 'table' },
           { label: 'Questions', path: '/teacher/quizzes/questions', view: 'fullPageForm' },
           { label: 'Quiz Settings', path: '/teacher/quizzes/settings', view: 'fullPageForm' },
@@ -211,10 +193,20 @@ export function getPathsByRole(role) {
   return getFlatMenuByRole(role).flatMap((item) => item.children.map((child) => child.path));
 }
 
+export function isPathMatchingMenuPath(path, menuPath) {
+  if (path === menuPath) return true;
+  return path.startsWith(`${menuPath}/`);
+}
+
+export function isPathInRoleMenu(role, path) {
+  const paths = getPathsByRole(role);
+  return paths.some((menuPath) => isPathMatchingMenuPath(path, menuPath));
+}
+
 export function findMenuItemByPath(menuGroups, path) {
   for (const group of menuGroups) {
     for (const section of group.items) {
-      const item = section.children.find((child) => child.path === path);
+      const item = section.children.find((child) => isPathMatchingMenuPath(path, child.path));
       if (item) {
         return { group, section, item };
       }

@@ -10,6 +10,11 @@ import BarSummaryChart from '../components/charts/BarSummaryChart.jsx';
 import DonutSummaryChart from '../components/charts/DonutSummaryChart.jsx';
 import { iconMap } from '../components/iconMap.js';
 import { findMenuItemByPath, getMenuGroupsByRole } from '../config/menuConfig.js';
+import QuizManagementSection from './QuizManagementSection.jsx';
+import BlankQuizBuilderSection from './BlankQuizBuilderSection.jsx';
+import RolePermissionSection from './RolePermissionSection.jsx';
+import RoomManagementSection from './RoomManagementSection.jsx';
+import AttemptManagementSection from './AttemptManagementSection.jsx';
 import UserManagementSection from './UserManagementSection.jsx';
 import { getAdminDashboardSummary, getTeacherDashboardSummary } from '../../services/api.js';
 
@@ -367,7 +372,43 @@ function DashboardPageContent({ role, currentPath, onNavigate }) {
   );
 
   let content;
+  const usesCustomSection =
+    (role === 'admin' &&
+      (currentPath.startsWith('/admin/users') ||
+        currentPath.startsWith('/admin/roles') ||
+        currentPath.startsWith('/admin/quizzes') ||
+        currentPath.startsWith('/admin/rooms') ||
+        currentPath.startsWith('/admin/attempts'))) ||
+    (role === 'teacher' &&
+      (currentPath.startsWith('/teacher/quizzes') ||
+        currentPath.startsWith('/teacher/rooms') ||
+        currentPath.startsWith('/teacher/attempts')));
+
   if (role === 'admin' && currentPath.startsWith('/admin/users')) content = <UserManagementSection currentPath={currentPath} onNavigate={onNavigate} />;
+  else if (role === 'admin' && currentPath.startsWith('/admin/roles')) {
+    content = <RolePermissionSection currentPath={currentPath} onNavigate={onNavigate} />;
+  }
+  else if (
+    (role === 'admin' && currentPath.startsWith('/admin/rooms')) ||
+    (role === 'teacher' && currentPath.startsWith('/teacher/rooms'))
+  ) {
+    content = <RoomManagementSection role={role} currentPath={currentPath} onNavigate={onNavigate} />;
+  }
+  else if (
+    (role === 'admin' && currentPath.startsWith('/admin/attempts')) ||
+    (role === 'teacher' && currentPath.startsWith('/teacher/attempts'))
+  ) {
+    content = <AttemptManagementSection role={role} currentPath={currentPath} onNavigate={onNavigate} />;
+  }
+  else if (
+    (role === 'admin' && currentPath.startsWith('/admin/quizzes/questions')) ||
+    (role === 'teacher' && currentPath.startsWith('/teacher/quizzes/questions'))
+  ) {
+    content = <BlankQuizBuilderSection role={role} currentPath={currentPath} onNavigate={onNavigate} />;
+  }
+  else if ((role === 'admin' && currentPath.startsWith('/admin/quizzes')) || (role === 'teacher' && currentPath.startsWith('/teacher/quizzes'))) {
+    content = <QuizManagementSection role={role} currentPath={currentPath} onNavigate={onNavigate} />;
+  }
   else if (item.view === 'overview') content = renderOverview();
   else if (item.view === 'stats') content = renderStats();
   else if (item.view === 'activity') content = renderActivity();
@@ -377,7 +418,7 @@ function DashboardPageContent({ role, currentPath, onNavigate }) {
   return (
     <>
       {content}
-      {item.view === 'modalForm' && showModal ? (
+      {item.view === 'modalForm' && showModal && !usesCustomSection ? (
         <ModalForm
           title={`${item.label} - Quick Form`}
           onClose={() => setShowModal(false)}
@@ -388,7 +429,7 @@ function DashboardPageContent({ role, currentPath, onNavigate }) {
         />
       ) : null}
 
-      {item.view === 'modalForm' ? (
+      {item.view === 'modalForm' && !usesCustomSection ? (
         <button
           type="button"
           onClick={() => setShowModal(true)}

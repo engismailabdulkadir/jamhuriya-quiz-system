@@ -15,3 +15,38 @@ body {
   background: #f5f7fb;
   color: #1f2937;
 }
+
+.login-auth-input:-webkit-autofill,
+.login-auth-input:-webkit-autofill:hover,
+.login-auth-input:-webkit-autofill:focus,
+.login-auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  border-bottom-color: rgba(242, 194, 0, 0.75);
+  transition: background-color 99999s ease-in-out 0s;
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+  box-shadow: 0 0 0px 1000px transparent inset;
+}
+
+.swal2-popup.just-toast-popup {
+  border-radius: 10px;
+}
+
+.swal2-title.just-toast-title {
+  margin: 0;
+  font-size: 1.05rem !important;
+}
+
+.swal2-html-container.just-toast-text {
+  margin-top: 0.25rem !important;
+  font-size: 0.94rem !important;
+  line-height: 1.35 !important;
+}
+
+.swal2-icon.swal2-success,
+.swal2-icon.swal2-error,
+.swal2-icon.swal2-warning {
+  width: 1.8em !important;
+  height: 1.8em !important;
+  margin: 0.2em 0.55em 0.2em 0 !important;
+}

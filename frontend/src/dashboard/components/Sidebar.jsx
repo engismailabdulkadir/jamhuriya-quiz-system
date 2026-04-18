@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import logo from '../../assets/jamhuuriyo.png';
 import { iconMap } from './iconMap.js';
+import { isPathMatchingMenuPath } from '../config/menuConfig.js';
+import { getAdminAttempts, getTeacherAttempts } from '../../services/api.js';
 
 const { ChevronDown, ChevronLeft, ChevronRight, Search } = iconMap;
-const MENU_BADGES = {
+const STATIC_MENU_BADGES = {
   Notifications: 3,
-  Attempts: 12,
   'Cheating Logs': 2
 };
 
@@ -17,10 +18,18 @@ function Sidebar({
   onCloseMobile,
   onToggleCollapse
 }) {
+  const getBestMatchingChildPath = (section) => {
+    const matches = section.children.filter((child) => isPathMatchingMenuPath(currentPath, child.path));
+    if (matches.length === 0) return null;
+
+    matches.sort((a, b) => b.path.length - a.path.length);
+    return matches[0].path;
+  };
+
   const activeSectionLabel = useMemo(() => {
     for (const group of menuGroups) {
       for (const section of group.items) {
-        if (section.children.some((child) => child.path === currentPath)) {
+        if (section.children.some((child) => isPathMatchingMenuPath(currentPath, child.path))) {
           return section.label;
         }
       }
@@ -30,6 +39,7 @@ function Sidebar({
   }, [menuGroups, currentPath]);
 
   const [openSection, setOpenSection] = useState(activeSectionLabel);
+  const [attemptsBadgeCount, setAttemptsBadgeCount] = useState(null);
 
   useEffect(() => {
     if (collapsed) {
@@ -40,11 +50,56 @@ function Sidebar({
     setOpenSection(activeSectionLabel);
   }, [activeSectionLabel, collapsed]);
 
+  useEffect(() => {
+    const hasAttemptsSection = menuGroups.some((group) =>
+      group.items.some((section) => section.label === 'Attempts')
+    );
+    if (!hasAttemptsSection) {
+      setAttemptsBadgeCount(null);
+      return;
+    }
+
+    const isAdminMenu = menuGroups.some((group) =>
+      group.items.some((section) =>
+        section.children.some((child) => String(child.path).startsWith('/admin/'))
+      )
+    );
+
+    let active = true;
+    let timerId = null;
+
+    const loadAttemptsCount = async () => {
+      try {
+        const response = isAdminMenu
+          ? await getAdminAttempts({ status: 'ongoing', limit: 1 })
+          : await getTeacherAttempts({ status: 'ongoing', limit: 1 });
+
+        if (!active) return;
+        const count = Number(response?.summary?.ongoing ?? 0);
+        setAttemptsBadgeCount(Number.isFinite(count) ? Math.max(0, count) : 0);
+      } catch {
+        if (!active) return;
+        setAttemptsBadgeCount(0);
+      }
+    };
+
+    loadAttemptsCount();
+    timerId = window.setInterval(loadAttemptsCount, 30000);
+
+    return () => {
+      active = false;
+      if (timerId) {
+        window.clearInterval(timerId);
+      }
+    };
+  }, [menuGroups, currentPath]);
+
   const toggleSection = (label) => {
     setOpenSection((prev) => (prev === label ? null : label));
   };
 
-  const isSectionActive = (section) => section.children.some((child) => child.path === currentPath);
+  const isSectionActive = (section) =>
+    section.children.some((child) => isPathMatchingMenuPath(currentPath, child.path));
 
   const openSectionOrNavigate = (section) => {
     if (collapsed) {
@@ -117,7 +172,11 @@ function Sidebar({
                 const SectionIcon = iconMap[section.icon] ?? iconMap.LayoutDashboard;
                 const expanded = openSection === section.label;
                 const hasActiveChild = isSectionActive(section);
-                const badgeCount = MENU_BADGES[section.label];
+                const activeChildPath = getBestMatchingChildPath(section);
+                const badgeCount =
+                  section.label === 'Attempts'
+                    ? attemptsBadgeCount
+                    : STATIC_MENU_BADGES[section.label];
 
                 return (
                   <li key={section.label}>
@@ -140,7 +199,7 @@ function Sidebar({
                         {!collapsed ? section.label : null}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        {badgeCount ? (
+                        {badgeCount !== undefined && badgeCount !== null ? (
                           <span
                             className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                               hasActiveChild ? 'bg-[#d2dcff] text-[#4a59d9]' : 'bg-[#6466ef] text-white'
@@ -170,7 +229,7 @@ function Sidebar({
                           }`}
                       >
                         {section.children.map((child) => {
-                          const active = child.path === currentPath;
+                          const active = activeChildPath === child.path;
                           return (
                             <li key={child.path}>
                               <button

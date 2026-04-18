@@ -3,7 +3,14 @@ import { iconMap } from './iconMap.js';
 
 const { Eye, Pencil, Trash2 } = iconMap;
 
-function DataTable({ columns = [], rows = [], renderActions = null, hideActions = false, emptyText = "No rows found." }) {
+function DataTable({
+  columns = [],
+  rows = [],
+  renderActions = null,
+  hideActions = false,
+  emptyText = "No rows found.",
+  onRowClick = null
+}) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="min-w-full divide-y divide-slate-200 bg-white text-sm">
@@ -26,10 +33,16 @@ function DataTable({ columns = [], rows = [], renderActions = null, hideActions 
             </tr>
           ) : (
             rows.map((row) => (
-              <tr key={row.id} className="hover:bg-slate-50/60">
+              <tr
+                key={row.id}
+                className={`hover:bg-slate-50/60 ${onRowClick ? "cursor-pointer" : ""}`}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+              >
                 {columns.map((column) => (
                   <td key={`${row.id}-${column.key}`} className="px-4 py-3 text-slate-700">
-                    {column.type === 'status' ? (
+                    {typeof column.render === "function" ? (
+                      column.render(row)
+                    ) : column.type === 'status' ? (
                       <StatusBadge status={row[column.key]}>{row[column.key]}</StatusBadge>
                     ) : (
                       row[column.key]
@@ -37,7 +50,7 @@ function DataTable({ columns = [], rows = [], renderActions = null, hideActions 
                   </td>
                 ))}
                 {!hideActions ? (
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                     {renderActions ? (
                       renderActions(row)
                     ) : (

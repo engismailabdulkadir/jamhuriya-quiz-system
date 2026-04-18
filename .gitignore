@@ -3,3 +3,9 @@ backend-serve.err.log
 frontend-dev.log
 backend/.env
 frontend/.env
+.venv/
+*.log
+/package-lock.json
+frontend/vite-dev.err.log
+frontend/vite-dev.out.log
+backend/database/read_all_data.sql

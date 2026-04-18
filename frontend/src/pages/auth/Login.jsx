@@ -4,10 +4,8 @@ import { clearAuthData, loginUser, setAuthData } from "../../services/api.js";
 import { showError, showWarning } from "../../utils/alerts.js";
 
 function Login({ onNavigate }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
@@ -15,7 +13,7 @@ function Login({ onNavigate }) {
     setIsSubmitting(true);
 
     try {
-      const response = await loginUser({ email, password });
+      const response = await loginUser({ username, password });
       setAuthData(response.token, response.user);
 
       const roleName = response.user?.role?.name;
@@ -42,9 +40,15 @@ function Login({ onNavigate }) {
           "Cannot reach server. Please verify backend server and CORS settings."
         );
       } else if (error?.status === 403) {
-        await showWarning("Account Inactive", "Your account is inactive.");
+        const message = String(error?.data?.message || "");
+        if (message.toLowerCase().includes("student accounts must use")) {
+          await showWarning("Student Access Required", "Please use the student access page.");
+          onNavigate("/student/access");
+        } else {
+          await showWarning("Account Inactive", message || "Your account is inactive.");
+        }
       } else if (error?.status === 422) {
-        await showError("Invalid Credentials", error?.data?.message || "Email or password is incorrect.");
+        await showError("Invalid Credentials", error?.data?.message || "Username or password is incorrect.");
       } else if ((error?.status ?? 0) >= 500) {
         await showError(
           "Server Error",
@@ -60,84 +64,103 @@ function Login({ onNavigate }) {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#edf2f7] px-4 py-8">
-      <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-lg sm:p-8">
-        <div className="mb-2 h-1 w-full rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#2563eb]" />
-
-        <div className="mb-5 flex justify-center">
+    <main className="flex min-h-screen items-start justify-center bg-[#f1f5ff] px-4 pt-1 pb-8 sm:pt-2">
+      <section className="w-full max-w-3xl">
+        <article className="mx-auto mb-0 w-full max-w-2xl">
           <img
             src={logo}
             alt="Jamhuriya University Logo"
-            className="w-[520px] max-w-full object-contain sm:w-[560px]"
+            className="mx-auto w-full max-w-[590px] object-contain"
           />
-        </div>
+        </article>
 
-        <div className="mb-5 text-center">
-          <p className="mb-2 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold tracking-wide text-[#1E3A8A]">
-            Staff Portal
-          </p>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-[#1E293B]">Sign In</h1>
-          <p className="mt-1 text-sm text-slate-500">Enter your account details</p>
-        </div>
+        <article className="mx-auto -mt-16 w-full max-w-md overflow-hidden rounded-[46px] border border-[#f2c200]/60 bg-[linear-gradient(145deg,rgba(30,58,138,0.9)_0%,rgba(31,63,149,0.88)_45%,rgba(31,138,76,0.72)_100%)] px-8 py-10 shadow-[0_24px_60px_rgba(6,20,70,0.28)] backdrop-blur-sm sm:-mt-20 sm:px-10 sm:py-12">
+          <h1 className="mb-6 text-center text-[2rem] font-semibold tracking-wide text-white">Login</h1>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mx-auto w-full space-y-5 rounded-2xl border border-slate-100 bg-white p-4 sm:p-5"
-        >
-          <div className="relative">
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onFocus={() => setEmailFocused(true)}
-              onBlur={() => setEmailFocused(false)}
-              placeholder=" "
-              className="w-full rounded-2xl border border-slate-200 bg-[#f8fafc] px-5 pb-3 pt-6 text-gray-800 outline-none transition-colors duration-150 focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-blue-100"
-              required
-            />
-            <label
-              htmlFor="email"
-              className={`pointer-events-none absolute left-4 px-1 transition-all duration-200 ${
-                emailFocused || email
-                  ? "top-0 -translate-y-1/2 rounded bg-white text-sm text-[#1E3A8A]"
-                  : "top-1/2 -translate-y-1/2 text-base text-gray-500"
-              }`}
-            >
-              Email
-            </label>
+          <div className="mx-auto mb-9 flex h-28 w-28 items-center justify-center rounded-full bg-white/10 ring-1 ring-[#f2c200]/50">
+            <svg width="66" height="66" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-white/70">
+              <path
+                d="M12 12a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm-7.5 8.5a7.5 7.5 0 0 1 15 0"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
-          <div className="relative">
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              onFocus={() => setPasswordFocused(true)}
-              onBlur={() => setPasswordFocused(false)}
-              placeholder=" "
-              className="w-full rounded-2xl border border-slate-200 bg-[#f8fafc] px-5 pb-3 pt-6 text-gray-800 outline-none transition-colors duration-150 focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-blue-100"
-              required
-            />
-            <label
-              htmlFor="password"
-              className={`pointer-events-none absolute left-4 px-1 transition-all duration-200 ${
-                passwordFocused || password
-                  ? "top-0 -translate-y-1/2 rounded bg-white text-sm text-[#1E3A8A]"
-                  : "top-1/2 -translate-y-1/2 text-base text-gray-500"
-              }`}
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="relative h-16">
+              <span className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-[#f2c200] drop-shadow-[0_0_8px_rgba(242,194,0,0.35)]">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M12 12a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm-7.5 8.5a7.5 7.5 0 0 1 15 0"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder=" "
+                className="login-auth-input peer h-full w-full border-0 border-b border-[#f2c200]/75 bg-transparent pl-16 pt-6 text-2xl text-white outline-none placeholder:text-transparent focus:border-white"
+                required
+              />
+              <label
+                htmlFor="username"
+                className={`pointer-events-none absolute left-16 transition-all duration-200 peer-focus:top-1 peer-focus:translate-y-0 peer-focus:text-sm peer-focus:text-white ${
+                  username ? "top-1 translate-y-0 text-sm text-white" : "top-1/2 -translate-y-1/2 text-2xl text-white/80"
+                }`}
+              >
+                Username
+              </label>
+            </div>
+
+            <div className="relative h-16">
+              <span className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-[#f2c200] drop-shadow-[0_0_8px_rgba(242,194,0,0.35)]">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M7 11V9a5 5 0 0 1 10 0v2m-9 0h8a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder=" "
+                className="login-auth-input peer h-full w-full border-0 border-b border-[#f2c200]/75 bg-transparent pl-16 pt-6 text-2xl text-white outline-none placeholder:text-transparent focus:border-white"
+                required
+              />
+              <label
+                htmlFor="password"
+                className={`pointer-events-none absolute left-16 transition-all duration-200 peer-focus:top-1 peer-focus:translate-y-0 peer-focus:text-sm peer-focus:text-white ${
+                  password ? "top-1 translate-y-0 text-sm text-white" : "top-1/2 -translate-y-1/2 text-2xl text-white/80"
+                }`}
+              >
+                Password
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-14 w-full rounded-2xl border border-[#f2c200]/70 bg-[linear-gradient(90deg,#1e3a8a_0%,#1f3f95_56%,#1f8a4c_100%)] text-lg font-bold uppercase tracking-[0.15em] text-white transition-opacity hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-[#f2c200]/70 focus:ring-offset-2 focus:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Password
-            </label>
-          </div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-2xl bg-gradient-to-r from-[#1E3A8A] to-[#2563eb] px-4 py-3.5 font-semibold text-white shadow-md transition-colors duration-150 hover:from-[#1b347d] hover:to-[#1d4fd8] focus:outline-none focus:ring-2 focus:ring-[#F2C200] focus:ring-offset-2 disabled:opacity-80"
-          >
-            {isSubmitting ? "Signing in..." : "Login"}
-          </button>
-        </form>
+              {isSubmitting ? "Signing in..." : "Login"}
+            </button>
+          </form>
+        </article>
       </section>
     </main>
   );

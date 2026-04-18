@@ -5,7 +5,6 @@ import LoadingState from "../components/LoadingState.jsx";
 import { iconMap } from "../components/iconMap.js";
 import {
   createAdminUser,
-  deleteAdminUser,
   getAdminUserRoleSummary,
   getAdminUsers,
   setAdminUserStatus,
@@ -13,12 +12,10 @@ import {
 } from "../../services/api.js";
 import { formatValidationErrors, showConfirm, showError, showSuccess } from "../../utils/alerts.js";
 
-const { Plus, Pencil, Trash2, X, ShieldAlert, CheckCircle2 } = iconMap;
+const { Plus, Pencil, X, ShieldAlert, CheckCircle2 } = iconMap;
 
 const initialForm = {
   full_name: "",
-  email: "",
-  phone: "",
   role: "admin",
   password: "",
   password_confirmation: "",
@@ -37,6 +34,7 @@ function labelRole(roleName) {
   if (key === "admin") return "Admin";
   if (key === "teacher") return "Teacher";
   if (key === "instructor") return "Instructor";
+  if (key === "student") return "Student";
   return roleName || "-";
 }
 
@@ -67,8 +65,6 @@ function UserManagementSection({ currentPath, onNavigate }) {
 
   const usersColumns = [
     { key: "full_name", label: "Full Name" },
-    { key: "email", label: "Email" },
-    { key: "phone", label: "Phone" },
     { key: "role_label", label: "Role" },
     { key: "status", label: "Status", type: "status" },
     { key: "created_at", label: "Created At" }
@@ -82,8 +78,6 @@ function UserManagementSection({ currentPath, onNavigate }) {
   const rows = users.map((user) => ({
     id: user.id,
     full_name: user.full_name || "-",
-    email: user.email || "-",
-    phone: user.phone || "-",
     role_label: labelRole(user.role?.name),
     status: user.status || (user.is_active ? "active" : "blocked"),
     created_at: formatDate(user.created_at),
@@ -188,8 +182,6 @@ function UserManagementSection({ currentPath, onNavigate }) {
     setEditingUser(user);
     setEditForm({
       full_name: user.full_name || "",
-      email: user.email || "",
-      phone: user.phone || "",
       role: user.role?.name || "teacher",
       password: "",
       password_confirmation: "",
@@ -208,8 +200,6 @@ function UserManagementSection({ currentPath, onNavigate }) {
 
     const payload = {
       full_name: editForm.full_name,
-      email: editForm.email,
-      phone: editForm.phone,
       role: editForm.role,
       is_active: Boolean(editForm.is_active)
     };
@@ -233,31 +223,12 @@ function UserManagementSection({ currentPath, onNavigate }) {
     }
   };
 
-  const handleDeleteUser = async (user) => {
-    const confirm = await showConfirm({
-      title: "Delete User?",
-      text: `User "${user.full_name}" will be deleted permanently.`,
-      confirmText: "Delete",
-      cancelText: "Cancel",
-      confirmButtonColor: "#fd7e14"
-    });
+  const handleSetUserActiveStatus = async (user, nextStatus) => {
+    if (!user) return;
 
-    if (!confirm.isConfirmed) return;
+    const currentStatus = Boolean(user.is_active);
+    if (currentStatus === Boolean(nextStatus)) return;
 
-    setSubmitting(true);
-    try {
-      await deleteAdminUser(user.id);
-      await showSuccess("User Deleted", "User deleted successfully.");
-      reloadUsers();
-    } catch (err) {
-      await showError("Delete Failed", err?.data?.message || "Unable to delete user.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleToggleUser = async (user) => {
-    const nextStatus = !user.is_active;
     const confirm = await showConfirm({
       title: nextStatus ? "Activate User?" : "Block User?",
       text: `User "${user.full_name}" will be ${nextStatus ? "activated" : "blocked"}.`,
@@ -272,6 +243,11 @@ function UserManagementSection({ currentPath, onNavigate }) {
     try {
       await setAdminUserStatus(user.id, nextStatus);
       await showSuccess("Status Updated", `User is now ${nextStatus ? "active" : "blocked"}.`);
+      if (!nextStatus && currentPath !== "/admin/users/blocked") {
+        onNavigate("/admin/users/blocked");
+      } else if (nextStatus && currentPath === "/admin/users/blocked") {
+        onNavigate("/admin/users/active");
+      }
       reloadUsers();
     } catch (err) {
       await showError("Status Update Failed", err?.data?.message || "Could not update user status.");
@@ -305,26 +281,6 @@ function UserManagementSection({ currentPath, onNavigate }) {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
-        <input
-          name="email"
-          type="email"
-          value={createForm.email}
-          onChange={onCreateChange}
-          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100"
-          required
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Phone</label>
-        <input
-          name="phone"
-          value={createForm.phone}
-          onChange={onCreateChange}
-          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100"
-        />
-      </div>
-      <div>
         <label className="mb-1 block text-sm font-medium text-slate-700">Role</label>
         <select
           name="role"
@@ -336,6 +292,7 @@ function UserManagementSection({ currentPath, onNavigate }) {
           <option value="admin">Admin</option>
           <option value="teacher">Teacher</option>
           <option value="instructor">Instructor</option>
+          <option value="student">Student</option>
         </select>
       </div>
       <div className="flex items-center gap-2 pt-6">
@@ -406,7 +363,7 @@ function UserManagementSection({ currentPath, onNavigate }) {
         <input
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search by name/email/phone"
+          placeholder="Search by full name"
           className="w-64 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100"
         />
         <button
@@ -437,16 +394,19 @@ function UserManagementSection({ currentPath, onNavigate }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => handleToggleUser(row._raw)}
+            onClick={() => handleSetUserActiveStatus(row._raw, true)}
+            disabled={submitting || Boolean(row._raw.is_active)}
             className={actionButtonBase}
             style={{
               ...actionButtonStyle,
-              backgroundColor: row._raw.is_active ? "#2563eb" : "#1f8a4c",
-              color: "#ffffff"
+              backgroundColor: row._raw.is_active ? "#94a3b8" : "#2563eb",
+              color: "#ffffff",
+              cursor: row._raw.is_active ? "not-allowed" : "pointer",
+              opacity: row._raw.is_active ? 0.65 : 1
             }}
-            title={row._raw.is_active ? "Block User" : "Activate User"}
+            title={row._raw.is_active ? "Already Active" : "Activate User"}
           >
-            {row._raw.is_active ? <ShieldAlert className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+            <CheckCircle2 className="h-4 w-4" />
           </button>
 
           <button
@@ -465,16 +425,19 @@ function UserManagementSection({ currentPath, onNavigate }) {
 
           <button
             type="button"
-            onClick={() => handleDeleteUser(row._raw)}
+            onClick={() => handleSetUserActiveStatus(row._raw, false)}
+            disabled={submitting || !Boolean(row._raw.is_active)}
             className={actionButtonBase}
             style={{
               ...actionButtonStyle,
-              backgroundColor: "#fd7e14",
-              color: "#ffffff"
+              backgroundColor: row._raw.is_active ? "#fd7e14" : "#94a3b8",
+              color: "#ffffff",
+              cursor: row._raw.is_active ? "pointer" : "not-allowed",
+              opacity: row._raw.is_active ? 1 : 0.65
             }}
-            title="Delete User"
+            title={row._raw.is_active ? "Block User" : "Already Blocked"}
           >
-            <Trash2 className="h-4 w-4" />
+            <ShieldAlert className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -543,26 +506,6 @@ function UserManagementSection({ currentPath, onNavigate }) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
-                <input
-                  name="email"
-                  type="email"
-                  value={editForm.email}
-                  onChange={onEditChange}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Phone</label>
-                <input
-                  name="phone"
-                  value={editForm.phone}
-                  onChange={onEditChange}
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
-              <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Role</label>
                 <select
                   name="role"
@@ -574,6 +517,7 @@ function UserManagementSection({ currentPath, onNavigate }) {
                   <option value="admin">Admin</option>
                   <option value="teacher">Teacher</option>
                   <option value="instructor">Instructor</option>
+                  <option value="student">Student</option>
                 </select>
               </div>
               <div className="flex items-center gap-2 pt-6">

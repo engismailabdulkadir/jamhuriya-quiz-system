@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 
 class UserManagementController extends Controller
 {
@@ -17,7 +17,7 @@ class UserManagementController extends Controller
     {
         $validated = $request->validate([
             'status' => ['nullable', 'string', 'in:all,active,blocked'],
-            'role' => ['nullable', 'string', 'in:admin,teacher,instructor'],
+            'role' => ['nullable', 'string', 'in:admin,teacher,instructor,student'],
             'search' => ['nullable', 'string', 'max:150'],
         ]);
 
@@ -46,8 +46,6 @@ class UserManagementController extends Controller
                 if ($this->hasUsersColumn('name')) {
                     $builder->orWhere('name', 'like', "%{$search}%");
                 }
-                $builder->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -58,8 +56,6 @@ class UserManagementController extends Controller
                 return [
                     'id' => (int) $user->id,
                     'full_name' => (string) ($user->full_name ?: $user->name ?: ''),
-                    'email' => (string) $user->email,
-                    'phone' => $user->phone,
                     'is_active' => (bool) $user->is_active,
                     'status' => $user->is_active ? 'active' : 'blocked',
                     'role' => [
@@ -86,18 +82,22 @@ class UserManagementController extends Controller
     {
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:150'],
-            'email' => ['required', 'string', 'email', 'max:190', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:30'],
-            'role' => ['required', 'string', 'in:admin,teacher,instructor'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'string', 'in:admin,teacher,instructor,student'],
+            'password' => ['required', 'string', 'min:4', 'confirmed'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $role = Role::query()->firstOrCreate(['name' => strtolower((string) $validated['role'])]);
-        $payload = $this->buildUserPayload([
+        $payloadInput = [
             'role_id' => (int) $role->id,
             ...$validated,
-        ]);
+        ];
+
+        if ($this->hasUsersColumn('email')) {
+            $payloadInput['email'] = $this->generateInternalEmail((string) $validated['full_name']);
+        }
+
+        $payload = $this->buildUserPayload($payloadInput);
 
         $user = User::query()->create($payload);
         $user->load('role');
@@ -107,8 +107,6 @@ class UserManagementController extends Controller
             'user' => [
                 'id' => (int) $user->id,
                 'full_name' => (string) ($user->full_name ?: $user->name ?: ''),
-                'email' => (string) $user->email,
-                'phone' => $user->phone,
                 'is_active' => (bool) $user->is_active,
                 'status' => $user->is_active ? 'active' : 'blocked',
                 'role' => [
@@ -126,10 +124,8 @@ class UserManagementController extends Controller
 
         $validated = $request->validate([
             'full_name' => ['sometimes', 'required', 'string', 'max:150'],
-            'email' => ['sometimes', 'required', 'string', 'email', 'max:190', Rule::unique('users', 'email')->ignore($user->id)],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:30'],
-            'role' => ['sometimes', 'required', 'string', 'in:admin,teacher,instructor'],
-            'password' => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
+            'role' => ['sometimes', 'required', 'string', 'in:admin,teacher,instructor,student'],
+            'password' => ['sometimes', 'nullable', 'string', 'min:4', 'confirmed'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
@@ -154,8 +150,6 @@ class UserManagementController extends Controller
             'user' => [
                 'id' => (int) $user->id,
                 'full_name' => (string) ($user->full_name ?: $user->name ?: ''),
-                'email' => (string) $user->email,
-                'phone' => $user->phone,
                 'is_active' => (bool) $user->is_active,
                 'status' => $user->is_active ? 'active' : 'blocked',
                 'role' => [
@@ -183,8 +177,6 @@ class UserManagementController extends Controller
             'user' => [
                 'id' => (int) $user->id,
                 'full_name' => (string) ($user->full_name ?: $user->name ?: ''),
-                'email' => (string) $user->email,
-                'phone' => $user->phone,
                 'is_active' => (bool) $user->is_active,
                 'status' => $user->is_active ? 'active' : 'blocked',
                 'role' => [
@@ -199,17 +191,11 @@ class UserManagementController extends Controller
     public function destroy(Request $request, int $userId): JsonResponse
     {
         $user = User::query()->findOrFail($userId);
-
-        if ((int) $request->user()->id === (int) $user->id) {
-            return response()->json([
-                'message' => 'You cannot delete your own account.',
-            ], 422);
-        }
-
-        $user->delete();
+        $user->is_active = false;
+        $user->save();
 
         return response()->json([
-            'message' => 'User deleted successfully.',
+            'message' => 'User deletion is disabled. User has been blocked instead.',
         ]);
     }
 
@@ -255,10 +241,6 @@ class UserManagementController extends Controller
             $payload['email'] = (string) $input['email'];
         }
 
-        if (array_key_exists('phone', $input)) {
-            $payload['phone'] = $input['phone'];
-        }
-
         if (array_key_exists('is_active', $input)) {
             $payload['is_active'] = (bool) $input['is_active'];
         }
@@ -282,5 +264,28 @@ class UserManagementController extends Controller
     {
         return Schema::hasColumn('users', $column);
     }
-}
 
+    private function generateInternalEmail(string $fullName): string
+    {
+        $base = Str::of($fullName)
+            ->lower()
+            ->ascii()
+            ->replaceMatches('/[^a-z0-9]+/', '.')
+            ->trim('.')
+            ->value();
+
+        if ($base === '') {
+            $base = 'user';
+        }
+
+        $suffix = 1;
+        $candidate = "{$base}@internal.justquiz.local";
+
+        while (User::query()->where('email', $candidate)->exists()) {
+            $suffix += 1;
+            $candidate = "{$base}.{$suffix}@internal.justquiz.local";
+        }
+
+        return $candidate;
+    }
+}

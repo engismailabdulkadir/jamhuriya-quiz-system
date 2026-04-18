@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Login from "../pages/auth/Login.jsx";
 import Register from "../pages/auth/Register.jsx";
 import StudentAccess from "../pages/auth/StudentAccess.jsx";
 import AdminDashboard from "../pages/dashboard/AdminDashboard.jsx";
 import StudentDashboard from "../pages/dashboard/StudentDashboard.jsx";
 import TeacherDashboard from "../pages/dashboard/TeacherDashboard.jsx";
-import { getPathsByRole } from "../dashboard/config/menuConfig.js";
+import { isPathInRoleMenu } from "../dashboard/config/menuConfig.js";
 import {
   clearAuthData,
   clearStudentData,
@@ -20,8 +20,6 @@ function AppRouter() {
   const [path, setPath] = useState(window.location.pathname || "/login");
   const [user, setUser] = useState(() => getStoredUser());
   const [student, setStudent] = useState(() => getStoredStudent());
-  const adminPaths = useMemo(() => getPathsByRole("admin"), []);
-  const teacherPaths = useMemo(() => getPathsByRole("teacher"), []);
 
   useEffect(() => {
     const handlePopState = () => setPath(window.location.pathname || "/login");
@@ -30,8 +28,20 @@ function AppRouter() {
   }, []);
 
   useEffect(() => {
-    const isAdminPath = adminPaths.includes(path);
-    const isTeacherPath = teacherPaths.includes(path);
+    if (path.startsWith("/admin/courses")) {
+      window.history.replaceState({}, "", "/admin/dashboard");
+      setPath("/admin/dashboard");
+      return;
+    }
+
+    if (path.startsWith("/teacher/courses")) {
+      window.history.replaceState({}, "", "/teacher/dashboard");
+      setPath("/teacher/dashboard");
+      return;
+    }
+
+    const isAdminPath = isPathInRoleMenu("admin", path);
+    const isTeacherPath = isPathInRoleMenu("teacher", path);
     const isDashboardPath = isAdminPath || isTeacherPath || path === "/student/dashboard";
 
     if (!isDashboardPath) return;
@@ -79,7 +89,7 @@ function AppRouter() {
       window.history.pushState({}, "", "/admin/dashboard");
       setPath("/admin/dashboard");
     }
-  }, [path, adminPaths, teacherPaths]);
+  }, [path]);
 
   const navigate = (nextPath) => {
     if (window.location.pathname !== nextPath) {
@@ -137,7 +147,7 @@ function AppRouter() {
     return <StudentAccess onNavigate={navigate} />;
   }
 
-  if (adminPaths.includes(path)) {
+  if (isPathInRoleMenu("admin", path)) {
     return (
       <AdminDashboard
         user={user}
@@ -148,7 +158,7 @@ function AppRouter() {
     );
   }
 
-  if (teacherPaths.includes(path)) {
+  if (isPathInRoleMenu("teacher", path)) {
     return (
       <TeacherDashboard
         user={user}

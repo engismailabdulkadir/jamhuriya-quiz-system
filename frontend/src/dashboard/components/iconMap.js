@@ -25,6 +25,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Upload,
+  Share2,
   Maximize2,
   Minimize2
 } from 'lucide-react';
@@ -56,6 +58,8 @@ export const iconMap = {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Upload,
+  Share2,
   Maximize2,
   Minimize2
 };

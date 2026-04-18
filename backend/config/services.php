@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'fallback_local' => env('OPENAI_FALLBACK_LOCAL', true),
+        'verify_ssl' => env('OPENAI_VERIFY_SSL', true),
+        'connect_timeout' => (int) env('OPENAI_CONNECT_TIMEOUT', 30),
+        'timeout' => (int) env('OPENAI_TIMEOUT', 120),
+        'retry_times' => (int) env('OPENAI_RETRY_TIMES', 2),
+        'retry_sleep_ms' => (int) env('OPENAI_RETRY_SLEEP_MS', 700),
+        'force_ipv4' => env('OPENAI_FORCE_IPV4', true),
+    ],
+
 ];
