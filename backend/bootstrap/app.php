@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        apiPrefix: env('API_PREFIX', env('VERCEL_ENV') ? '' : 'api'),
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
@@ -53,13 +54,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 if (str_contains($message, 'could not find driver')) {
                     return response()->json([
-                        'message' => 'Database driver missing (pdo_mysql). Enable MySQL PDO extension in PHP.',
+                        'message' => 'Database driver missing. Enable the configured PDO extension in PHP.',
                     ], 500);
                 }
 
-                if (str_contains($message, '2002') || str_contains($message, 'while connecting')) {
+                if (str_contains($message, '2002') || str_contains($message, 'while connecting') || str_contains($message, 'connection refused')) {
                     return response()->json([
-                        'message' => 'Cannot connect to MySQL. Check DB_HOST/DB_PORT and ensure MySQL server is running.',
+                        'message' => 'Cannot connect to the database. Check database host, port, and credentials.',
                     ], 500);
                 }
             }

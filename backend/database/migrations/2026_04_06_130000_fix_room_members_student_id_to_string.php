@@ -12,6 +12,10 @@ return new class extends Migration
             return;
         }
 
+        if (!in_array(DB::getDriverName(), ['mysql', 'mariadb'], true)) {
+            return;
+        }
+
         $database = DB::getDatabaseName();
         $type = DB::table('information_schema.COLUMNS')
             ->where('TABLE_SCHEMA', $database)
@@ -53,4 +57,3 @@ return new class extends Migration
         // Keep as-is to avoid destructive conversion back to numeric type.
     }
 };
-

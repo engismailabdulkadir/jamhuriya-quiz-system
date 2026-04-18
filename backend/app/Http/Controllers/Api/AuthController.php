@@ -82,12 +82,12 @@ class AuthController extends Controller
                 $message = strtolower($exception->getMessage());
                 if (str_contains($message, 'could not find driver')) {
                     return response()->json([
-                        'message' => 'Database driver missing (pdo_mysql). Enable MySQL PDO extension in PHP.',
+                        'message' => 'Database driver missing. Enable the configured PDO extension in PHP.',
                     ], 500);
                 }
-                if (str_contains($message, '2002') || str_contains($message, 'while connecting')) {
+                if (str_contains($message, '2002') || str_contains($message, 'while connecting') || str_contains($message, 'connection refused')) {
                     return response()->json([
-                        'message' => 'Cannot connect to MySQL. Check DB_HOST/DB_PORT and ensure MySQL server is running.',
+                        'message' => 'Cannot connect to the database. Check database host, port, and credentials.',
                     ], 500);
                 }
             }
@@ -193,12 +193,12 @@ class AuthController extends Controller
                 $message = strtolower($exception->getMessage());
                 if (str_contains($message, 'could not find driver')) {
                     return response()->json([
-                        'message' => 'Database driver missing (pdo_mysql). Enable MySQL PDO extension in PHP.',
+                        'message' => 'Database driver missing. Enable the configured PDO extension in PHP.',
                     ], 500);
                 }
-                if (str_contains($message, '2002') || str_contains($message, 'while connecting')) {
+                if (str_contains($message, '2002') || str_contains($message, 'while connecting') || str_contains($message, 'connection refused')) {
                     return response()->json([
-                        'message' => 'Cannot connect to MySQL. Check DB_HOST/DB_PORT and ensure MySQL server is running.',
+                        'message' => 'Cannot connect to the database. Check database host, port, and credentials.',
                     ], 500);
                 }
             }

@@ -6,7 +6,9 @@ $allowedOrigins = array_filter(array_map(
 ));
 
 return [
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    // Vercel's PHP routing forwards requests through a serverless entrypoint,
+    // so the application may receive paths without the original `/api` prefix.
+    'paths' => ['*'],
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     'allowed_origins' => $allowedOrigins,
     'allowed_origins_patterns' => [

@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd frontend && npm ci",
-  "buildCommand": "cd frontend && npm run build",
+  "buildCommand": "cd frontend && VITE_API_BASE_URL=https://jamhuriya-quiz-api.vercel.app/api npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
